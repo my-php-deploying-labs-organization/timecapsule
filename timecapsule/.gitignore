@@ -1,7 +1,0 @@
-/vendor/
-/.env
-/storage/uploads/*
-!/storage/uploads/.gitkeep
-/storage/sessions/*
-!/storage/sessions/.gitkeep
-/storage/*.log
