@@ -87,5 +87,3 @@ $navLink = function (string $key, string $href, string $label) use ($nav, $view)
 
 </body>
 </html>
-
-<?php broken(
