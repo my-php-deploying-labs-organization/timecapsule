@@ -83,6 +83,7 @@ $navLink = function (string $key, string $href, string $label) use ($nav, $view)
       Yakovlev Vladyslav
     </div>
   </div>
+  <p>TimeCapsule — LR3</p>
 </footer>
 
 </body>
