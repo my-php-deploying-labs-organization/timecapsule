@@ -4,26 +4,37 @@ declare(strict_types=1);
 
 namespace App;
 
-use App\Http\HttpException;
+use Aws\S3\S3Client;
 use RuntimeException;
 
-// File storage for capsule attachments, in a folder on the local disk.
-// This is the only class that reads or writes uploaded files.
 class Storage
 {
-    public function __construct(private readonly string $directory)
-    {
+    private S3Client $s3;
+
+    public function __construct(
+        private readonly string $bucket,
+        string $region
+    ) {
+        $this->s3 = new S3Client([
+            'version' => 'latest',
+            'region' => $region,
+        ]);
     }
 
-    // Save an uploaded file ($_FILES['...'] entry) and return its stored name, e.g. "3f9a...e1.png".
-    // The name is random, so nobody can guess other people's file names.
     public function save(array $uploadedFile, string $extension): string
     {
         $storedName = bin2hex(random_bytes(16)) . '.' . $extension;
 
-        if (!move_uploaded_file($uploadedFile['tmp_name'], $this->path($storedName))) {
-            throw new RuntimeException('Could not save the uploaded file.');
-        }
+        $mime = mime_content_type($uploadedFile['tmp_name'])
+            ?: 'application/octet-stream';
+
+        $this->s3->putObject([
+            'Bucket' => $this->bucket,
+            'Key' => $this->key($storedName),
+            'SourceFile' => $uploadedFile['tmp_name'],
+            'ContentType' => $mime,
+        ]);
+
         return $storedName;
     }
 
@@ -33,45 +44,53 @@ class Storage
             return;
         }
 
-        $path = $this->path($storedName);
-        if (is_file($path)) {
-            unlink($path);
-        }
+        $this->s3->deleteObject([
+            'Bucket' => $this->bucket,
+            'Key' => $this->key($storedName),
+        ]);
     }
 
-    // Send a stored file to the browser.
-    // $disposition: "inline" (show in the browser) or "attachment" (download).
-    public function stream(string $storedName, string $mime, string $downloadName, string $disposition): void
-    {
-        $path = $this->path($storedName);
-        if (!is_file($path)) {
-            throw new HttpException(404);
+    public function stream(
+        string $storedName,
+        string $mime,
+        string $downloadName,
+        string $disposition
+    ): void {
+        if (!in_array($disposition, ['inline', 'attachment'], true)) {
+            throw new RuntimeException('Invalid content disposition.');
         }
 
-        // Keep only safe characters for the plain filename; the UTF-8 name goes in filename*.
-        $asciiName = preg_replace('/[^A-Za-z0-9._ -]/', '_', $downloadName);
+        $asciiName = preg_replace(
+            '/[^A-Za-z0-9._ -]/',
+            '_',
+            $downloadName
+        );
 
-        header('Content-Type: ' . $mime);
-        header('Content-Length: ' . filesize($path));
-        header(sprintf(
-            'Content-Disposition: %s; filename="%s"; filename*=UTF-8\'\'%s',
+        $contentDisposition = sprintf(
+            '%s; filename="%s"; filename*=UTF-8\'\'%s',
             $disposition,
             $asciiName,
             rawurlencode($downloadName)
-        ));
-        header('X-Content-Type-Options: nosniff'); // the browser must trust our Content-Type
+        );
 
-        readfile($path);
+        $command = $this->s3->getCommand('GetObject', [
+            'Bucket' => $this->bucket,
+            'Key' => $this->key($storedName),
+            'ResponseContentType' => $mime,
+            'ResponseContentDisposition' => $contentDisposition,
+        ]);
+
+        $request = $this->s3->createPresignedRequest(
+            $command,
+            '+5 minutes'
+        );
+
+        header('Location: ' . (string) $request->getUri(), true, 302);
+        exit;
     }
 
-    // Full path of a stored file. The folder is created on first use.
-    private function path(string $storedName): string
+    private function key(string $storedName): string
     {
-        if (!is_dir($this->directory)) {
-            mkdir($this->directory, 0775, true);
-        }
-
-        // basename() makes sure we never touch anything outside the upload folder.
-        return rtrim($this->directory, '/') . '/' . basename($storedName);
+        return 'uploads/' . basename($storedName);
     }
 }

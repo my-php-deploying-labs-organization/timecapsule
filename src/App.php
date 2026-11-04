@@ -111,7 +111,10 @@ class App
             $this->session,
             $this->capsules,
             new CapsuleValidator($this->config->getInt('MAX_UPLOAD_MB', 5)),
-            new Storage($this->uploadDir()),
+            new Storage(
+                $this->config->getString('S3_BUCKET'),
+                $this->config->getString('AWS_REGION', 'eu-central-1')
+            ),
             new Mailer($this->notifications, $this->config->getFloat('MAIL_DELAY_SECONDS', 3)),
         );
         $wall = new WallController($this->view, $this->capsules);
