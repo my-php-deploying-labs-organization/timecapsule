@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 namespace App;
+use Aws\DynamoDb\DynamoDbClient;
+use Aws\DynamoDb\SessionHandler;
 
 // PHP sessions: a cookie with a random id, and the data in a file in storage/sessions/.
 class Session
@@ -12,15 +14,31 @@ class Session
     }
 
     public function start(): void
-    {
-        session_save_path($this->savePath);
-        session_name('timecapsule_session');
-        session_set_cookie_params([
-            'httponly' => true, // JavaScript cannot read the cookie
-            'samesite' => 'Lax', // the cookie is not sent with forms posted from other sites
-        ]);
-        session_start();
-    }
+{
+    $client = new DynamoDbClient([
+        'region' => 'eu-central-1',
+        'version' => 'latest',
+    ]);
+
+    $handler = SessionHandler::fromClient($client, [
+        'table_name' => getenv('DYNAMODB_SESSIONS_TABLE')
+            ?: 'timecapsule-dev-sessions',
+        'hash_key' => 'id',
+        'session_lifetime_attribute' => 'expires',
+        'session_lifetime' => 86400, // 24 часа
+    ]);
+
+    $handler->register();
+
+    session_name('timecapsule_session');
+
+    session_set_cookie_params([
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+
+    session_start();
+}
 
     public function isStarted(): bool
     {
