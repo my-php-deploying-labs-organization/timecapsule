@@ -83,10 +83,7 @@ class App
         // Monitoring tools call /health every few seconds: do not create a session file
         // for each of those calls.
         if ($path !== '/health') {
-            $this->session->start();
-
-            // A due capsule is opened by the next web request, before any page is rendered.
-            (new CapsuleOpener($this->capsules, $this->notifications))->openDue();
+        $this->session->start();
         }
 
         $route = $this->routes()->match($method, $path);
