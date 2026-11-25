@@ -6,12 +6,11 @@ namespace App\Controllers;
 
 use App\Auth;
 use App\Http\HttpException;
-use App\Mailer;
+use App\EventPublisher;
 use App\Models\Capsule;
 use App\Repositories\CapsuleRepository;
 use App\Session;
 use App\Storage;
-use App\Support\Format;
 use App\Validation\CapsuleValidator;
 use App\View;
 
@@ -25,7 +24,7 @@ class CapsuleController extends Controller
         private readonly CapsuleRepository $capsules,
         private readonly CapsuleValidator $validator,
         private readonly Storage $storage,
-        private readonly Mailer $mailer,
+        private readonly EventPublisher $eventPublisher,
     ) {
         parent::__construct($view);
     }
@@ -82,12 +81,7 @@ class CapsuleController extends Controller
         $capsule = $this->capsules->create($data);
 
         // 3. "Send" the confirmation e-mail. This is the slow part of the request (see Mailer).
-        $recipient = $capsule->recipientEmail ?? $user->email;
-        $this->mailer->send($capsule, $recipient, sprintf(
-            'Capsule "%s" was sealed for you until %s.',
-            $capsule->title,
-            Format::dateTime($capsule->openAt)
-        ));
+        $this->eventPublisher->capsuleSealed($capsule->id);
 
         $this->session->flash('success', 'Capsule sealed.');
         $this->redirect('/capsules/' . $capsule->id);

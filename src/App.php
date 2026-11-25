@@ -115,7 +115,10 @@ class App
                 $this->config->getString('S3_BUCKET'),
                 $this->config->getString('AWS_REGION', 'eu-central-1')
             ),
-            new Mailer($this->notifications, $this->config->getFloat('MAIL_DELAY_SECONDS', 3)),
+            new EventPublisher(
+                $this->config->getString('SNS_TOPIC_ARN'),
+                $this->config->getString('AWS_REGION', 'eu-central-1')
+            ),
         );
         $wall = new WallController($this->view, $this->capsules);
         $notifications = new NotificationController($this->view, $this->auth, $this->notifications);
