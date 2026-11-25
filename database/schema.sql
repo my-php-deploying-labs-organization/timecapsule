@@ -37,6 +37,12 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 CREATE INDEX IF NOT EXISTS notifications_user_id_idx ON notifications (user_id);
 
+ALTER TABLE notifications
+ADD COLUMN IF NOT EXISTS event_id VARCHAR(255);
+
+CREATE UNIQUE INDEX IF NOT EXISTS notifications_event_id_idx
+ON notifications (event_id);
+
 -- Built-in "Guest" user, used when AUTH_ENABLED=false.
 -- The password hash is not a valid bcrypt hash, so nobody can log in as guest.
 INSERT INTO users (id, email, password_hash)
