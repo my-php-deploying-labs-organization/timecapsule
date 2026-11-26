@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Auth;
 use App\Http\HttpException;
 use App\EventPublisher;
+use App\ImageModeration;
 use App\Models\Capsule;
 use App\Repositories\CapsuleRepository;
 use App\Session;
@@ -23,6 +24,7 @@ class CapsuleController extends Controller
         private readonly Session $session,
         private readonly CapsuleRepository $capsules,
         private readonly CapsuleValidator $validator,
+        private readonly ImageModeration $imageModeration,
         private readonly Storage $storage,
         private readonly EventPublisher $eventPublisher,
     ) {
@@ -65,6 +67,10 @@ class CapsuleController extends Controller
             $this->renderForm($data, $errors, 422);
             return;
         }
+
+        $moderation = $this->imageModeration->moderate($upload['file']['tmp_name'] ?? null, $upload['mime'] ?? null);
+        $data['moderation_status'] = $moderation['status'];
+        $data['moderation_labels'] = $moderation['labels'];
 
         // 1. Save the attachment (if any).
         $data['file_path'] = null;

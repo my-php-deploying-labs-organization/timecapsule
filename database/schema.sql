@@ -1,5 +1,5 @@
 -- TimeCapsule database schema (PostgreSQL 16).
--- Safe to run many times: it only creates what is missing.
+-- Safe to rerun, including on existing installations.
 
 CREATE TABLE IF NOT EXISTS users (
     id            SERIAL PRIMARY KEY,
@@ -22,6 +22,16 @@ CREATE TABLE IF NOT EXISTS capsules (
     opened_at       TIMESTAMP,
     created_at      TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
 );
+
+ALTER TABLE capsules
+    ADD COLUMN IF NOT EXISTS moderation_status VARCHAR(20) NOT NULL DEFAULT 'not_applicable',
+    ADD COLUMN IF NOT EXISTS moderation_labels JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+UPDATE capsules
+SET moderation_status = 'unverified'
+WHERE moderation_status = 'not_applicable'
+  AND file_path IS NOT NULL
+  AND file_mime IN ('image/jpeg', 'image/png');
 
 CREATE INDEX IF NOT EXISTS capsules_user_id_idx ON capsules (user_id);
 CREATE INDEX IF NOT EXISTS capsules_open_at_idx ON capsules (open_at);

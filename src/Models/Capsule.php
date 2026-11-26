@@ -22,6 +22,8 @@ class Capsule
         public readonly ?string $openedAt,
         public readonly string $createdAt,
         public readonly ?string $ownerEmail = null, // only filled by queries that join "users"
+        public readonly string $moderationStatus = 'not_applicable',
+        public readonly array $moderationLabels = [],
     ) {
     }
 
@@ -41,6 +43,8 @@ class Capsule
             openedAt: $row['opened_at'],
             createdAt: $row['created_at'],
             ownerEmail: $row['owner_email'] ?? null,
+            moderationStatus: $row['moderation_status'] ?? 'not_applicable',
+            moderationLabels: json_decode($row['moderation_labels'] ?? '[]', true, flags: JSON_THROW_ON_ERROR),
         );
     }
 
@@ -58,6 +62,12 @@ class Capsule
     public function isImage(): bool
     {
         return $this->fileMime !== null && str_starts_with($this->fileMime, 'image/');
+    }
+
+    public function requiresContentWarning(): bool
+    {
+        return $this->hasFile() && $this->isImage()
+            && in_array($this->moderationStatus, ['sensitive', 'unverified'], true);
     }
 
     public function isOwnedBy(?User $user): bool

@@ -72,12 +72,13 @@ class CapsuleRepository
 
     // Insert a capsule and return it as it is stored in the database.
     // $data keys: user_id, title, message, open_at_utc ("Y-m-d H:i:s", UTC), is_public, recipient_email,
-    // file_path, file_name, file_mime.
+    // file_path, file_name, file_mime, moderation_status, moderation_labels.
     public function create(array $data): Capsule
     {
         $row = $this->db->fetchOne(
-            'INSERT INTO capsules (user_id, title, message, open_at, is_public, recipient_email, file_path, file_name, file_mime)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            'INSERT INTO capsules (user_id, title, message, open_at, is_public, recipient_email, file_path, file_name, file_mime,
+                                   moderation_status, moderation_labels)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb))
              RETURNING *',
             [
                 $data['user_id'],
@@ -89,6 +90,8 @@ class CapsuleRepository
                 $data['file_path'],
                 $data['file_name'],
                 $data['file_mime'],
+                $data['moderation_status'] ?? 'not_applicable',
+                json_encode($data['moderation_labels'] ?? [], JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE),
             ]
         );
         return Capsule::fromRow($row);

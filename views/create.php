@@ -41,7 +41,7 @@
     <div class="<?= $view->fieldClass($errors, 'attachment') ?>">
       <label for="attachment">Attachment <span class="optional">(optional)</span></label>
       <input type="file" id="attachment" name="attachment" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf"<?= $view->fieldAria($errors, 'attachment', true) ?>>
-      <span class="hint" id="attachment-hint">JPG, PNG, GIF, WEBP or PDF, up to <?= (int) $maxUploadMb ?> MB.</span>
+      <span class="hint" id="attachment-hint">JPG, PNG, GIF, WEBP or PDF, up to <?= (int) $maxUploadMb ?> MB. Amazon Rekognition automatically analyzes JPEG and PNG. GIF, WEBP and PDF are not moderated.</span>
       <?= $view->fieldError($errors, 'attachment') ?>
     </div>
 

@@ -43,7 +43,19 @@ $hasFile = $capsule->hasFile();
     <div class="letter"><?= $view->e($capsule->message) ?></div>
 <?php if ($hasFile && $capsule->isImage()): ?>
 
+<?php if ($capsule->requiresContentWarning()): ?>
+    <div class="attachment-preview is-blurred" tabindex="-1" aria-label="Image attachment">
+      <img class="attachment-image" src="/capsules/<?= $id ?>/file" alt="Attachment: <?= $view->e($capsule->fileName) ?>">
+      <div class="attachment-warning">
+        <p><?= $capsule->moderationStatus === 'unverified'
+            ? 'This image was not verified and may contain sensitive content.'
+            : 'This image may contain sensitive content.' ?></p>
+        <button type="button" class="btn btn-secondary" data-reveal-attachment hidden>Watch anyway</button>
+      </div>
+    </div>
+<?php else: ?>
     <img class="attachment-image" src="/capsules/<?= $id ?>/file" alt="Attachment: <?= $view->e($capsule->fileName) ?>">
+<?php endif; ?>
 <?php endif; ?>
 <?php if ($hasFile || $isOwner): ?>
 

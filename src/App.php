@@ -108,6 +108,10 @@ class App
             $this->session,
             $this->capsules,
             new CapsuleValidator($this->config->getInt('MAX_UPLOAD_MB', 5)),
+            new ImageModeration(
+                $this->config->getString('AWS_REGION', 'eu-central-1'),
+                $this->config->getInt('REKOGNITION_MIN_CONFIDENCE', 80)
+            ),
             new Storage(
                 $this->config->getString('S3_BUCKET'),
                 $this->config->getString('AWS_REGION', 'eu-central-1')

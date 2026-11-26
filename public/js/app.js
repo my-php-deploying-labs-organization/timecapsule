@@ -5,6 +5,16 @@
 //   3. dates on the pages are shown in the visitor's own time zone.
 
 document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('[data-reveal-attachment]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var preview = button.closest('.attachment-preview');
+      preview.classList.remove('is-blurred');
+      button.closest('.attachment-warning').remove();
+      preview.focus();
+    });
+    button.hidden = false;
+  });
+
   // 1. Calendar + time picker.
   document.querySelectorAll('input[data-datetime-picker]').forEach(function (input) {
     if (typeof flatpickr !== 'function') return; // library missing: keep the browser's own field
