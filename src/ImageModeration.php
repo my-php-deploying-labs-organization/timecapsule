@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App;
 
+use Aws\Exception\AwsException;
 use Aws\Rekognition\RekognitionClient;
 use RuntimeException;
 use Throwable;
@@ -23,6 +24,7 @@ final class ImageModeration
         $started = hrtime(true);
         $status = 'not_applicable';
         $labels = [];
+        $error = [];
         $threshold = max(0, min(100, $this->minConfidence));
 
         if ($temporaryPath !== null && in_array($mime, ['image/jpeg', 'image/png'], true)) {
@@ -54,9 +56,18 @@ final class ImageModeration
                     }
                 }
                 $status = $labels === [] ? 'safe' : 'sensitive';
-            } catch (Throwable) {
+            } catch (AwsException $exception) {
                 $status = 'unverified';
                 $labels = [];
+                $error = [
+                    'aws_error_code' => $exception->getAwsErrorCode(),
+                    'http_status' => $exception->getStatusCode(),
+                    'aws_request_id' => $exception->getAwsRequestId(),
+                ];
+            } catch (Throwable $exception) {
+                $status = 'unverified';
+                $labels = [];
+                $error = ['exception_class' => $exception::class];
             }
         }
 
@@ -65,7 +76,7 @@ final class ImageModeration
             'labels' => $labels,
             'min_confidence' => $threshold,
             'duration_ms' => round((hrtime(true) - $started) / 1_000_000, 2),
-        ], JSON_INVALID_UTF8_SUBSTITUTE));
+        ] + $error, JSON_INVALID_UTF8_SUBSTITUTE));
 
         return ['status' => $status, 'labels' => $labels];
     }
